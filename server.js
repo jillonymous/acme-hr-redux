@@ -1,8 +1,43 @@
+// TODO: separate out to db folder
 const Sequelize = require('sequelize');
 const { STRING, UUID, UUIDV4 } = Sequelize;
 const conn = new Sequelize(
   process.env.DATABASE_URL || 'postgres://localhost/acme_hr'
 );
+const express = require('express');
+const app = express();
+const path = require('path');
+
+app.use(express.json());
+
+app.use('/dist', express.static('dist'));
+app.use('/src', express.static('src'));
+
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+
+app.post('/api/users', async (req, res, next) => {
+  try {
+    res.status(201).send(await User.create(req.body));
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get('/api/users', async (req, res, next) => {
+  try {
+    res.send(await User.findAll());
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get('/api/departments', async (req, res, next) => {
+  try {
+    res.send(await Department.findAll());
+  } catch (err) {
+    next(err);
+  }
+});
 
 const User = conn.define('user', {
   id: {
@@ -57,6 +92,9 @@ const init = async () => {
     larry.departmentId = hr.id;
 
     await Promise.all([lucy.save(), ethel.save(), larry.save()]);
+
+    const port = process.env.PORT || 3000;
+    app.listen(port, () => console.log(`Listening on port ${port}`));
   } catch (err) {
     console.log(err);
   }
